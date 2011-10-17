@@ -1,5 +1,8 @@
 #include <aJSON.h>
- 
+#include <WiFly.h>
+
+#include "Config.h"
+
 /* -----------------------------------------------------
 * Arduino - Stockery
 * --------------------------------------------------- */
@@ -18,6 +21,14 @@ int  serIn;
 char inputString[200];
 int  serInIndx  = 0;
 int  serOutIndx = 0;
+
+// Stockery API
+char * api_server = "http://www.google.com";
+String api_endpoint = "/";
+int api_port = 80;
+
+// Webclient
+Client client(api_server, api_port);
 
 // read a string from the serial and store it in an array
 void readSerialString () {
@@ -72,6 +83,27 @@ void setup() {
   // setup serial communication
   Serial.begin(BAUD_RATE);
   
+  Serial.println("Init WiFly...");
+  
+  WiFly.begin();
+  
+  if (!WiFly.join(ssid, passphrase)) {
+    Serial.println("Association failed.");
+    while (1) {
+      // Hang on failure.
+    }
+  }  
+  
+  Serial.println("Connecting...");
+  
+   if (client.connect()) {
+    Serial.println("connected");
+    client.println("GET /search?q=arduino HTTP/1.0");
+    client.println();
+  } else {
+    Serial.println("connection failed");
+  }
+  
   // setup LED lights 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_ORANGE, OUTPUT);
@@ -79,6 +111,22 @@ void setup() {
 }
 
 void loop () {
+  if (client.available()) {
+    char c = client.read();
+    Serial.println("-- char read");
+    Serial.print(c);
+  }
+  
+  if (!client.connected()) {
+    Serial.println();
+    Serial.println("disconnecting.");
+    client.stop();
+    for(;;)
+      ;
+  }
+  
+  /*
+  
   if(Serial.available()) { 
     // reset read buffer
     clearSerialString();
@@ -94,5 +142,5 @@ void loop () {
   
   // wait for next poll
   delay(TIMEOUT);
-  
+  */
 }
