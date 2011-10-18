@@ -10,7 +10,21 @@ and an LCD ticker with your stocks.
 Hardware
 --------
 
-To imitate the whole setup you will need an Arduino board, a WiFly Shield and a standard Hitachi HD44780 compatible LCD display. Schemes will be added later.
+The electronic setup consists of an Arduino Duemilanove (any Arduino should do), a WiFly Shield , a standard Hitachi HD44780 compatible LCD display and some LEDs.
+
+LCD PIN           ARDUINO PIN
+RS  = 4     ->      7
+EN  = 6     ->      8
+D7  = 14    ->      12
+D6  = 13    ->      11
+D5  = 12    ->      10
+D4  = 11    ->      9
+GND = 16    ->      GND
+5V  = 15    ->      5V
+      1     ->      GND
+      2     ->      5V
+      3     ->      CONTRAST (POTENTIOMETER)
+      5     ->      GND (R/W PIN)
 
 Software
 --------

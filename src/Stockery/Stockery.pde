@@ -1,6 +1,6 @@
 #include <aJSON.h>
 #include <WiFly.h>
-
+#include <LiquidCrystal.h>
 #include "Config.h"
 
 /* -----------------------------------------------------
@@ -29,6 +29,9 @@ int api_port = 80;
 
 // Webclient
 Client client(api_server, api_port);
+
+// Lcd
+LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 
 // read a string from the serial and store it in an array
 void readSerialString () {
@@ -80,6 +83,8 @@ void parseResponse() {
 }
 
 void setup() {
+  Serial.println("Setup");
+  /*
   // setup serial communication
   Serial.begin(BAUD_RATE);
   
@@ -108,9 +113,21 @@ void setup() {
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_ORANGE, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
+  */
+  
+  lcd.begin(16,2);
+    // clear screen for the next loop:
+  lcd.clear();
+  
+  // set the cursor to (0,0):
+  lcd.setCursor(0, 0);
+  
+  lcd.print(api_server);
+  
 }
 
 void loop () {
+  /*
   if (client.available()) {
     char c = client.read();
     Serial.println("-- char read");
@@ -124,6 +141,14 @@ void loop () {
     for(;;)
       ;
   }
+  */
+  
+    
+
+   // wait for next poll
+  delay(2000);
+
+
   
   /*
   
@@ -139,8 +164,7 @@ void loop () {
   }
   
   updateUI();
-  
-  // wait for next poll
-  delay(TIMEOUT);
   */
+
+  
 }
