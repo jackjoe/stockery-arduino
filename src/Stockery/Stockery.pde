@@ -3,15 +3,55 @@
 #include <LiquidCrystal.h>
 #include "Config.h"
 
-/* -----------------------------------------------------
+/* ----------------------------------------------------------
  * Arduino - Stockery
- * --------------------------------------------------- */
+ *
+ * Author: Jeroen Bourgois (http://github.com/jeroenbourgois)
+ * Version: 0.1
+ *
+ * Stockery by Pierot (http://github.com/pierot/)
+ *
+ * Source is on github:
+ *   https://github.com/basht/stockery-arduino
+ * ---------------------------------------------------------- */
+
+/* ----------------------------------------------------------
+ *
+ * More info on the implementation and pin numbering can
+ * also be found in the project README.md
+ *
+ * Connecting the LCD
+ *
+ * Pin No. Symbol   Destination    Description
+ * ------  ------   -----------    ------------------------
+ * 1          VSS → GND            Ground
+ * 2          VDD → 5V             Supply Voltage for logic
+ * 3           V0 → Pot Leg 2      Variable Operating voltage for LCD
+ * 4           RS → Arduino 7      Register Selector (H: DATA, L: Instruction code)
+ * 5          R/W → GND            Read/Write Selector (H: Read(MPU→Module) L: Write(MPU→Module))
+ * 6           EN → Arduino 6      Chip enable signal
+ * 7          DB0 → No Connection  Data bit 0
+ * 8          DB1 → No Connection  Data bit 1
+ * 9          DB2 → No Connection  Data bit 2
+ * 10         DB3 → No Connection  Data bit 3
+ * 11         DB4 → Arduino 2      Data bit 4
+ * 12         DB5 → Arduino 3      Data bit 5
+ * 13         DB6 → Arduino 4      Data bit 6
+ * 14         DB7 → Arduino 5      Data bit 7
+ * 15      LED(+) → 5V             Anode of LED Backlight
+ * 16      LED(-) → GND            Cathode of LED Backlight
+ *
+ * ---------------------------------------------------------- */
 
 // Webclient
 Client client("fluxdesign.be", 80);
 
-// Lcd
-LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
+// LCD
+LiquidCrystal lcd(7, 6, 2, 3, 4, 5);
+
+// Vars
+String LOG_PREFIX_SERIAL = "Stockery ~ Arduino: ";
+String LOG_PREFIX_LCD = "";
 
 ////////////////////////////////////////////////////////
 // SETUP
@@ -22,29 +62,24 @@ void setup() {
   // init serial comm
   Serial.begin(BAUDRATE);
 
-  log("setup", true);
-
-  // setupWiFly();
-
-
+  log("Setup", false);
 
   setupLCD();
 
-  //  setupWiFly();
+  setupWiFly();
 
-  /*
   log("Connecting...", true);
-   
-   if (client.connect()) {
-   Serial.println("connected");
-   client.println("GET /stockery.php HTTP/1.0");
-   client.println("host: fluxdesign.be");
-   client.println();
-   } 
-   else {
-   Serial.println("connection failed");
-   }
-   */
+
+  if (client.connect()) {
+    log("Connected", true);
+    client.println("GET /stockery.php HTTP/1.0");
+    client.println("host: fluxdesign.be");
+    client.println(); // VERY IMPORTANT!
+  } 
+  else {
+    log("Connection failed", true);     
+  }
+
   //pinMode(2, OUTPUT);
   //pinMode(3, OUTPUT);
   //pinMode(4, OUTPUT);
@@ -57,18 +92,20 @@ void setup() {
 
 void setupLCD() {
   lcd.begin(16, 2);
-  lcd.clear(); 
+  lcd.setCursor(0, 0);
+
+  log("LCD ready", true);
 }
 
 void setupWiFly() {
-  log("Init WiFly", false);
+  log("Init WiFly", true);
 
   WiFly.begin();
 
-  log("Wifly inited", false);
+  log("Wifly inited", true);
 
   if (!WiFly.join(ssid, passphrase)) {
-    log("Association failed", false);
+    log("Association failed", true);
     while (1) {
       // Hang on failure.
     }
@@ -76,11 +113,11 @@ void setupWiFly() {
 }
 
 void log(String message, boolean tolcd) {
-  Serial.println(message);
+  Serial.println(LOG_PREFIX_SERIAL + message);
 
   if(tolcd) {
     lcd.clear();
-    //lcd.println("ok");
+    lcd.print(LOG_PREFIX_LCD + message);
   }
 }
 
@@ -95,89 +132,90 @@ void loop () {
   boolean current_state=false;
   boolean validmessage=false;
 
-  Serial.println("looped");
 
-/*
+  //Serial.println("looped");
+
+  /*
   if (client) {
-    // an http request ends with a blank line
-    boolean current_line_is_blank = true;
-    while (client.connected()) {
-      if (client.available()) {
-        char c = client.read();
-
-        for (int i = 0; i<=stringlength-1; i++){
-          secondtry[i]=secondtry[i+1];
-        }
-        secondtry[stringlength-1]=c;
-
-        // if we've gotten to the end of the line (received a newline
-        // character) and the line is blank, the http request has ended,
-        // so we can send a reply
-        if (c == '\n' && current_line_is_blank) {
-          Serial.println("new HTTP request received");
-          //Content-Length: 145
-          //Serial.println(secondtry);
-          Serial.println("----------------");
-          String tmp = secondtry;
-          String tmp_cl = tmp.substring(tmp.indexOf("Content-Length"));
-          tmp_cl = tmp_cl.substring(17, 3);
-          Serial.println(tmp_cl);
-          Serial.println("----------------");
-        }
-        if (c == '\n') {
-          //          Serial.println("Non-Blank line received");
-          readstring="";
-          for (int i=0;i<=stringlength;i++){
-            readstring.concat(secondtry[i]);
-          }
-          //          Serial.println("###############");
-          //          Serial.println(readstring);
-          if (validmessage==false){
-            int questionmark = readstring.indexOf('?');
-            if(readstring.substring(questionmark + 1 , questionmark + 7) == "Set=On")
-            {
-
-              Serial.println("Turned On Kettle");
-              current_state=true;
-              validmessage=true;
-            }
-            else if(readstring.substring(questionmark + 1 , questionmark + 8) == "Set=Off")
-            {
-
-              Serial.println("Turned Off Kettle");
-              current_state=false;
-              validmessage=true;
-            }    
-          }
-
-          // we're starting a new line
-          current_line_is_blank = true;
-        } 
-        else if (c != '\r') {
-          // we've gotten a character on the current line
-          current_line_is_blank = false;
-        }
-      }
-    }
-    // give the web browser time to receive the data
-    delay(200);
-    client.stop();
-    validmessage=false;
-  }
-
-
-
-
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting.");
-    Serial.println(secondtry);
-    client.stop();
-    for(;;)
-      ;
-  }
-
-*/
+   // an http request ends with a blank line
+   boolean current_line_is_blank = true;
+   while (client.connected()) {
+   if (client.available()) {
+   char c = client.read();
+   
+   for (int i = 0; i<=stringlength-1; i++){
+   secondtry[i]=secondtry[i+1];
+   }
+   secondtry[stringlength-1]=c;
+   
+   // if we've gotten to the end of the line (received a newline
+   // character) and the line is blank, the http request has ended,
+   // so we can send a reply
+   if (c == '\n' && current_line_is_blank) {
+   Serial.println("new HTTP request received");
+   //Content-Length: 145
+   //Serial.println(secondtry);
+   Serial.println("----------------");
+   String tmp = secondtry;
+   String tmp_cl = tmp.substring(tmp.indexOf("Content-Length"));
+   tmp_cl = tmp_cl.substring(17, 3);
+   Serial.println(tmp_cl);
+   Serial.println("----------------");
+   }
+   if (c == '\n') {
+   //          Serial.println("Non-Blank line received");
+   readstring="";
+   for (int i=0;i<=stringlength;i++){
+   readstring.concat(secondtry[i]);
+   }
+   //          Serial.println("###############");
+   //          Serial.println(readstring);
+   if (validmessage==false){
+   int questionmark = readstring.indexOf('?');
+   if(readstring.substring(questionmark + 1 , questionmark + 7) == "Set=On")
+   {
+   
+   Serial.println("Turned On Kettle");
+   current_state=true;
+   validmessage=true;
+   }
+   else if(readstring.substring(questionmark + 1 , questionmark + 8) == "Set=Off")
+   {
+   
+   Serial.println("Turned Off Kettle");
+   current_state=false;
+   validmessage=true;
+   }    
+   }
+   
+   // we're starting a new line
+   current_line_is_blank = true;
+   } 
+   else if (c != '\r') {
+   // we've gotten a character on the current line
+   current_line_is_blank = false;
+   }
+   }
+   }
+   // give the web browser time to receive the data
+   delay(200);
+   client.stop();
+   validmessage=false;
+   }
+   
+   
+   
+   
+   if (!client.connected()) {
+   Serial.println();
+   Serial.println("disconnecting.");
+   Serial.println(secondtry);
+   client.stop();
+   for(;;)
+   ;
+   }
+   
+   */
   /*
   if(nextLine) {
    nextLine = false;
@@ -186,24 +224,25 @@ void loop () {
    
    delay(TIMEOUT);
    */
-  /*
+
   if (client.available()) {
-   char c = client.read();
-   Serial.println("-- char read");
-   Serial.print(c);
-   }
-   
-   if (!client.connected()) {
-   Serial.println();
-   Serial.println("disconnecting.");
-   client.stop();
-   for(;;)
-   ;
-   }
-   */
+    char c = client.read();
+    //Serial.print(c);
+    int tmp = sprintf(inputString, "%c", c);
+    log(tmp, false);
+  }
+
+  if (!client.connected()) {
+    log("Disconnecting", true);
+    log(inputString, false);
+    client.stop();
+    for(;;)
+      ;
+  }
+
+
 
   // wait for next poll
-  //delay(2000);
 
   /*
   
@@ -366,6 +405,7 @@ void displayMsgScroll(char *currentString) {
   }
   nextLine = true;
 }
+
 
 
 
